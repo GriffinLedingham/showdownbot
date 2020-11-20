@@ -184,7 +184,7 @@ var BattleRoom = new JS.Class({
             var set = this.state.dex.getSpecies(speciesName);
 
             const metaSet = MetaSets[speciesName]
-            if(global.program.ranked == 'battlestadiumsingles' && metaSet != undefined) {
+            if(global.program.ranked && metaSet != undefined) {
                 const pikaSet = metaSet['Pikalytics Set']
                 logger.info("=========== Using pikalytics set for: " + speciesName);
                 set.moves = pikaSet.moves
