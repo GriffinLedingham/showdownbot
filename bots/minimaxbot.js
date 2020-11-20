@@ -294,7 +294,7 @@ class Minimax {
         if (!battle.started) {
             battle.start();
         }
-    
+
         var maxNode = this.playerTurn(battle, maxDepth, Number.NEGATIVE_INFINITY, Number.POSITIVE_INFINITY, choices);
         if(!maxNode.action) return randombot.decide(battle, choices);
         logger.info("My action: " + maxNode.action.type + " " + maxNode.action.id);
@@ -308,12 +308,12 @@ class Minimax {
             tree: maxNode
         };
     }
-    
+
     //TODO: Implement move ordering, which can be based on the original greedy algorithm
     //However, it should have slightly different priorities, such as status effects...
     playerTurn(battle, depth, alpha, beta, givenchoices) {
         logger.trace("Player turn at depth " + depth);
-    
+
         // Node in the minimax tree
         var node = {
             type : "max",
@@ -324,7 +324,7 @@ class Minimax {
             action : null,
             state : battle.toString()
         };
-    
+
         var choices = (givenchoices) ? givenchoices : Util.parseRequest(battle.p1.request).choices;
         choices = this.arrangeP1Choices(choices, battle);
         for(var i = 0; i < choices.length; i++) {
@@ -344,19 +344,19 @@ class Minimax {
 
             return node;
         }
-    
+
         // No further search
         if(depth == 0) {
             node.value = eval(battle, choices, this.weights);
             node.state += "\n" + JSON.stringify(getFeatures(battle, choices), undefined, 2);
             return node;
-        } 
-        
+        }
+
         // If the request is a wait request, the opposing player has to take a turn, and we don't
         if(battle.p1.request.wait) {
             return this.opponentTurn(battle, depth, alpha, beta, null);
         }
-    
+
         //TODO: before looping through moves, move choices from array to priority queue to give certain moves higher priority than others
         //Essentially, the greedy algorithm
         //Perhaps then we can increase the depth...
@@ -364,11 +364,11 @@ class Minimax {
             if (this.isFoolChoice(choices[i])) {
                 continue;
             }
-    
+
             // Try action
             var minNode = this.opponentTurn(battle, depth, alpha, beta, choices[i]);
             node.children.push(minNode);
-    
+
             if(minNode.value != null && isFinite(minNode.value) ) {
                 if(minNode.value > node.value) {
                     node.value = minNode.value;
@@ -379,14 +379,14 @@ class Minimax {
                 if(beta <= alpha) break;
             }
         }
-    
+
         node.choices = choices;
         return node;
     }
-    
+
     opponentTurn(battle, depth, alpha, beta, playerAction) {
         logger.trace("Opponent turn turn at depth " + depth);
-    
+
         // Node in the minimax tree
         var node = {
             type : "min",
@@ -397,7 +397,7 @@ class Minimax {
             action : null,
             state: battle.toString()
         }
-    
+
         // If the request is a wait request, only the player chooses an action
         if(battle.p2.request.wait) {
             var newbattle = cloneBattle(battle);
@@ -405,33 +405,33 @@ class Minimax {
             newbattle.choose('p1', Util.toChoiceString(playerAction, newbattle.p1), newbattle.rqid);
             return this.playerTurn(newbattle, depth - 1, alpha, beta, null);
         }
-    
+
         var choices = Util.parseRequest(battle.p2.request).choices;
         choices = this.arrangeP2Choices(choices, battle);
         for(var i = 0; i < choices.length; i++) {
             logger.trace(choices[i].id + " with priority " + choices[i].priority);
         }
-    
+
         // We don't have enough info to simulate the battle anymore
         if(choices.length == 0) {
             node.value = eval(battle, [], this.weights);
             node.state += "\n" + JSON.stringify(getFeatures(battle, []), undefined, 2);
             return node;
         }
-    
+
         for (let i = 0; i < this.repetition; i++) {
             for(let j = 0; j < choices.length; ++j) {
                 logger.trace("Cloning battle...");
                 var newbattle = cloneBattle(battle, this.repetition <= 1 || !playerAction);
-        
+
                 // Register action, let battle simulate
                 if(playerAction) {
                     newbattle.choose('p1', Util.toChoiceString(playerAction, newbattle.p1), newbattle.rqid);
                 }
-                else {   
+                else {
                     newbattle.p1.decision = true;
                 }
-        
+
                 newbattle.choose('p2', Util.toChoiceString(choices[j], newbattle.p2), newbattle.rqid);
                 logger.trace("Player action: " + Util.toChoiceString(playerAction || '(wait)', newbattle.p1));
                 logger.trace("Opponent action: " + Util.toChoiceString(choices[j], newbattle.p2));
@@ -445,7 +445,7 @@ class Minimax {
                 }
                 var maxNode = this.playerTurn(newbattle, depth - 1, alpha, beta, null);
                 node.children.push(maxNode);
-        
+
                 if(maxNode.value != null && isFinite(maxNode.value)) {
                     if(maxNode.value < node.value) {
                         node.value = maxNode.value;
@@ -454,12 +454,12 @@ class Minimax {
                     beta = Math.min(beta, maxNode.value);
                     if(beta <= alpha) break;
                 }
-        
+
                 // Hopefully prompt garbage collection, so we don't maintain too many battle object
                 newbattle = null;
                 if(global.gc) global.gc()
             }
-        
+
             node.choices.push(...choices);
             // we execute the repetition when neither of players has `wait` action
             if (!playerAction) {
@@ -468,7 +468,7 @@ class Minimax {
         }
         return node;
     }
-    
+
     arrangeP1Choices(choices, battle) {
         //sort choices
         choices = _.sortBy(choices, function(choice) {
@@ -476,16 +476,16 @@ class Minimax {
             choice.priority = priority;
             return -priority;
         });
-    
+
         if (!this.useDynamax) {
-            choices = _.reject(choices, (choice) => 
-                (choice.type == "move" && choice.runDynamax) 
+            choices = _.reject(choices, (choice) =>
+                (choice.type == "move" && choice.runDynamax)
             );
         }
 
         return choices;
     }
-    
+
     arrangeP2Choices(choices, battle) {
         // Make sure we can't switch to a Bulbasaur or to a fainted pokemon
         choices = _.reject(choices, function(choice) {
@@ -494,26 +494,26 @@ class Minimax {
                         !battle.p2.pokemon[choice.id].hp)) return true;
             return false;
         });
-    
+
         //sort choices
         choices = _.sortBy(choices, function(choice) {
             var priority = greedybot.getPriority(battle, choice, battle.p2, battle.p1);
             choice.priority = priority;
             return -priority;
         });
-    
+
         // Take top 10 choices, to limit breadth of tree
         choices = _.take(choices, 10);
-    
+
         if (!this.useDynamax) {
-            choices = _.reject(choices, (choice) => 
-                (choice.type == "move" && choice.runDynamax) 
+            choices = _.reject(choices, (choice) =>
+                (choice.type == "move" && choice.runDynamax)
             );
         }
 
         return choices;
     }
-    
+
     isFoolChoice(p1Choice) {
         if(p1Choice.id === 'wish' && this.lastMove === 'wish') //don't wish twice in a row
             return true;
@@ -525,7 +525,11 @@ class Minimax {
             return true;
         if(p1Choice.id === 'detect' && this.lastMove === 'detect') //don't protect twice in a row. Not completely accurate...
             return true;
+        if(p1Choice.id === 'maxguard' && this.lastMove === 'maxguard') //don't protect twice in a row. Not completely accurate...
+            return true;
         if(p1Choice.id === 'fakeout' && this.lastMove === 'fakeout') //don't fakeout twice in a row. Not completely accurate...
+            return true;
+        if(p1Choice.id === 'yawn' && this.lastMove === 'yawn') //don't yawn twice in a row. They should already be drowsy...
             return true;
     }
 }

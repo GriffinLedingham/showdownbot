@@ -1,6 +1,6 @@
 /**************************************************************************
  * This module can be run as either parent process or child process.
- * In both cases, bot.js keeps the websocket connection with Showdown server, 
+ * In both cases, bot.js keeps the websocket connection with Showdown server,
  * and messages which it received from the server are handled here.
  **************************************************************************/
 
@@ -18,7 +18,7 @@ if (isChildProcess) {
 	global.team7g = JSON.parse(process.argv[6]);
 	global.team8g = JSON.parse(process.argv[7]);
 	require('./initLog4js')(global.program.nolog, global.program.onlyinfo);
-} 
+}
 
 const BattleRoom = require('./battleroom');
 const util = require('./util');
@@ -30,12 +30,12 @@ const team7g = require('./showdown-sources/.sim-dist/dex').Dex.packTeam(global.t
 const team8g = require('./showdown-sources/.sim-dist/dex').Dex.packTeam(global.team8g);
 
 // The game type that we want to search for on startup
-var GAME_TYPE = (global.program.ranked) ? "randombattle" : "unratedrandombattle";
+var GAME_TYPE = (global.program.ranked) ? "battlestadiumsingles" : "unratedrandombattle";
 
 // when received a message from parent
 process.on(isChildProcess ? 'message' : 'fromBot', (msg) => {
 	recieve(msg);
-}) 
+})
 
 // when send a message to parent
 function send(msg, room) {
@@ -112,7 +112,7 @@ function recieve(data) {
 			CHALLENGE = parts[2];
 
 			// Now try to rename to the given user
-			// handled by parent's rename() func 
+			// handled by parent's rename() func
 			send('rename' + '|' + CHALLENGE_KEY_ID + '|' + CHALLENGE);
 			break;
 		// Server is telling us to update the user that we are currently logged in as
@@ -217,6 +217,7 @@ function onLogin() {
 
 function searchBattle() {
 	logger.info("Searching for an unranked random battle");
+	send("/utm " + team8g);
     send("/search " + GAME_TYPE);
 }
 
@@ -224,5 +225,5 @@ module.exports.searchBattle = searchBattle;
 module.exports.ROOMS = ROOMS
 module.exports.send = send;
 
-// Web console, which reads battle states from exports.ROOMS 
+// Web console, which reads battle states from exports.ROOMS
 var webconsole = require("./console.js");
